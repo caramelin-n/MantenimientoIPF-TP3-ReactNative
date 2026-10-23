@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useReportes, Categoria } from '@/lib/reportes';
+import { Image } from 'expo-image';
 
 const CATEGORIAS: { value: Categoria; label: string }[] = [
   { value: 'electricidad', label: 'Electricidad' },
@@ -10,21 +11,48 @@ const CATEGORIAS: { value: Categoria; label: string }[] = [
   { value: 'equipos', label: 'Equipos' },
 ];
 
+function toArray<T>(v: T | T[] | undefined): T | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
 export default function NuevoReporte() {
-  const params = useLocalSearchParams<{ aula?: string; foto?: string; lat?: string; lon?: string; aproximada?: string; sector?: string }>();
-  const { crearReporte } = useReportes();
+  const params = useLocalSearchParams<{
+    aula?: string | string[];
+    foto?: string | string[];
+    lat?: string | string[];
+    lon?: string | string[];
+    aproximada?: string | string[];
+    sector?: string | string[];
+  }>();
+  const { crearReporte, borrador, limpiarBorrador } = useReportes();
+
+  const paramAula = toArray(params.aula);
+  const paramLat = toArray(params.lat);
+  const paramLon = toArray(params.lon);
+  const paramAprox = toArray(params.aproximada);
+  const paramSector = toArray(params.sector);
 
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [aula, setAula] = useState(params.aula ? String(params.aula) : '');
+  const [aula, setAula] = useState(borrador.aula ?? (paramAula ? String(paramAula) : ''));
   const [categoria, setCategoria] = useState<Categoria>('electricidad');
-  const [fotoUri] = useState<string | undefined>(params.foto ? String(params.foto) : undefined);
-  const [ubicacion] = useState<{ lat: number; lon: number; aproximada: boolean } | undefined>(
-    params.lat && params.lon
-      ? { lat: Number(params.lat), lon: Number(params.lon), aproximada: params.aproximada === '1' }
-      : undefined,
+  const [fotoUri, setFotoUri] = useState<string | undefined>(borrador.fotoUri);
+  const [ubicacion, setUbicacion] = useState<{ lat: number; lon: number; aproximada: boolean } | undefined>(
+    borrador.ubicacion ??
+      (paramLat && paramLon
+        ? { lat: Number(paramLat), lon: Number(paramLon), aproximada: paramAprox === '1' }
+        : undefined),
   );
-  const [sector] = useState<string | undefined>(params.sector ? String(params.sector) : undefined);
+  const [sector, setSector] = useState<string | undefined>(borrador.sector ?? (paramSector ? String(paramSector) : undefined));
+
+  useFocusEffect(
+    useCallback(() => {
+      if (borrador.aula !== undefined) setAula(borrador.aula);
+      if (borrador.fotoUri !== undefined) setFotoUri(borrador.fotoUri);
+      if (borrador.ubicacion !== undefined) setUbicacion(borrador.ubicacion);
+      if (borrador.sector !== undefined) setSector(borrador.sector);
+    }, [borrador.aula, borrador.fotoUri, borrador.ubicacion, borrador.sector]),
+  );
 
   const guardar = () => {
     if (!titulo.trim()) {
@@ -40,6 +68,7 @@ export default function NuevoReporte() {
       ubicacion,
       sector: sector as any,
     });
+    limpiarBorrador();
     router.replace(`/reporte/${id}`);
   };
 
@@ -88,7 +117,12 @@ export default function NuevoReporte() {
           </Pressable>
         </View>
 
-        {fotoUri ? <Text style={styles.info}>Foto adjunta</Text> : null}
+        {fotoUri ? (
+          <View style={styles.fotoBloque}>
+            <Image source={{ uri: fotoUri }} style={styles.fotoMini} contentFit="cover" />
+            <Text style={styles.info}>Foto adjunta</Text>
+          </View>
+        ) : null}
         {ubicacion ? (
           <Text style={styles.info}>
             Ubicación: {ubicacion.aproximada ? 'Ubicación aproximada' : `${ubicacion.lat.toFixed(5)}, ${ubicacion.lon.toFixed(5)}`}
@@ -120,4 +154,6 @@ const styles = StyleSheet.create({
   botonSec: { backgroundColor: '#ddd', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   botonSecTexto: { color: '#333', fontWeight: '600' },
   info: { color: '#555', fontSize: 13 },
+  fotoBloque: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fotoMini: { width: 64, height: 64, borderRadius: 8 },
 });

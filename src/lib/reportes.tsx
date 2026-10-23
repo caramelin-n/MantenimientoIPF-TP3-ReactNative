@@ -5,6 +5,13 @@ export type Estado = 'pendiente' | 'en curso' | 'resuelto';
 export type Sector = 'patio' | 'estacionamiento' | 'pasillo';
 export type Ubicacion = { lat: number; lon: number; aproximada: boolean };
 
+export type BorradorReporte = {
+  aula?: string;
+  fotoUri?: string;
+  ubicacion?: Ubicacion;
+  sector?: Sector;
+};
+
 export type Reporte = {
   id: string;
   titulo: string;
@@ -33,6 +40,9 @@ type ReportesContextValue = {
   agregarAviso: (mensaje: string) => void;
   marcarAvisoLeido: (id: string) => void;
   obtenerPorId: (id: string) => Reporte | undefined;
+  borrador: BorradorReporte;
+  guardarBorrador: (partial: Partial<BorradorReporte>) => void;
+  limpiarBorrador: () => void;
 };
 
 const ReportesContext = createContext<ReportesContextValue | null>(null);
@@ -44,6 +54,7 @@ function uid(): string {
 export function ReportesProvider({ children }: { children: React.ReactNode }) {
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [borrador, setBorrador] = useState<BorradorReporte>({});
 
   const crearReporte = useCallback((data: Omit<Reporte, 'id' | 'fecha' | 'estado'>) => {
     const id = uid();
@@ -59,6 +70,14 @@ export function ReportesProvider({ children }: { children: React.ReactNode }) {
 
   const actualizarEstado = useCallback((id: string, estado: Estado) => {
     setReportes((prev) => prev.map((r) => (r.id === id ? { ...r, estado } : r)));
+  }, []);
+
+  const guardarBorrador = useCallback((partial: Partial<BorradorReporte>) => {
+    setBorrador((prev) => ({ ...prev, ...partial }));
+  }, []);
+
+  const limpiarBorrador = useCallback(() => {
+    setBorrador({});
   }, []);
 
   const agregarAviso = useCallback((mensaje: string) => {
@@ -81,6 +100,9 @@ export function ReportesProvider({ children }: { children: React.ReactNode }) {
         agregarAviso,
         marcarAvisoLeido,
         obtenerPorId,
+        borrador,
+        guardarBorrador,
+        limpiarBorrador,
       }}
     >
       {children}

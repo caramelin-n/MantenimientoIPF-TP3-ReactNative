@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Button, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
+import { useReportes } from '@/lib/reportes';
 import { usePermiso } from '@/hooks/usePermiso';
 
 export default function FotoScreen() {
   const permiso = usePermiso('camera');
+  const { guardarBorrador } = useReportes();
   const [uri, setUri] = useState<string | null>(null);
 
   const sacarFoto = async () => {
@@ -37,17 +40,17 @@ export default function FotoScreen() {
   };
 
   const confirmar = () => {
-    if (uri) router.replace({ pathname: '/reporte/nuevo', params: { foto: uri } });
+    if (!uri) return;
+    guardarBorrador({ fotoUri: uri });
+    if (router.canGoBack()) router.back();
+    else router.replace('/reporte/nuevo');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Adjuntar foto</Text>
       <View style={styles.acciones}>
-        <Pressable
-          style={styles.boton}
-          onPress={() => void sacarFoto()}
-        >
+        <Pressable style={styles.boton} onPress={() => void sacarFoto()}>
           <Text style={styles.botonTexto}>
             {permiso.estado === 'bloqueado' ? 'Cámara bloqueada' : 'Sacar foto'}
           </Text>
@@ -59,7 +62,7 @@ export default function FotoScreen() {
 
       {uri ? (
         <>
-          <Image source={{ uri }} style={styles.preview} />
+          <Image source={{ uri }} style={styles.preview} contentFit="contain" cachePolicy="memory-disk" />
           <Button title="Usar esta foto" onPress={confirmar} />
         </>
       ) : (

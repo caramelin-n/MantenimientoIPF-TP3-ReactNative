@@ -3,12 +3,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { usePermiso } from '@/hooks/usePermiso';
-import { Sector } from '@/lib/reportes';
+import { Sector, useReportes } from '@/lib/reportes';
 
 const SECTORES: Sector[] = ['patio', 'estacionamiento', 'pasillo'];
 
 export default function UbicacionScreen() {
   const permiso = usePermiso('ubicacion');
+  const { guardarBorrador } = useReportes();
   const [pos, setPos] = useState<{ lat: number; lon: number; aproximada: boolean } | null>(null);
   const [cargando, setCargando] = useState(false);
 
@@ -33,16 +34,20 @@ export default function UbicacionScreen() {
     }
   };
 
+  const finalizar = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/reporte/nuevo');
+  };
+
   const usarPos = () => {
     if (!pos) return;
-    router.replace({
-      pathname: '/reporte/nuevo',
-      params: { lat: pos.lat, lon: pos.lon, aproximada: pos.aproximada ? '1' : '0' },
-    });
+    guardarBorrador({ ubicacion: pos });
+    finalizar();
   };
 
   const usarSector = (sector: Sector) => {
-    router.replace({ pathname: '/reporte/nuevo', params: { sector } });
+    guardarBorrador({ sector });
+    finalizar();
   };
 
   if (permiso.estado === 'cargando') {

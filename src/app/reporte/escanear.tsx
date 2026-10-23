@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Button, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
+import { useReportes } from '@/lib/reportes';
 import { usePermiso } from '@/hooks/usePermiso';
 
 function EstadoCargando() {
@@ -41,12 +42,15 @@ function EstadoBloqueado({ abrir }: { abrir: () => void }) {
 
 export default function EscanearScreen() {
   const permiso = usePermiso('camera');
+  const { guardarBorrador } = useReportes();
   const [escaneado, setEscaneado] = useState(false);
   const [codigoManual, setCodigoManual] = useState('');
 
   const volverConCodigo = (codigo: string) => {
     if (!codigo.trim()) return;
-    router.replace({ pathname: '/reporte/nuevo', params: { aula: codigo.trim() } });
+    guardarBorrador({ aula: codigo.trim() });
+    if (router.canGoBack()) router.back();
+    else router.replace('/reporte/nuevo');
   };
 
   if (permiso.estado === 'cargando') return <EstadoCargando />;
