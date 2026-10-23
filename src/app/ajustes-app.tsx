@@ -4,9 +4,11 @@ import { usePermiso } from '@/hooks/usePermiso';
 
 export default function AjustesScreen() {
   const permiso = usePermiso('notificaciones');
+  const disponible = permiso.disponible;
   const [avisar, setAvisar] = useState(false);
 
   const onChange = async (value: boolean) => {
+    if (!disponible) return;
     if (value) {
       if (permiso.estado === 'bloqueado') {
         permiso.abrirAjustes();
@@ -27,10 +29,10 @@ export default function AjustesScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>Avisarme cuando se resuelve mi reporte</Text>
           <Text style={styles.sub}>
-            Permiso: {permiso.estado}
+            {disponible ? `Permiso: ${permiso.estado}` : 'Disponible solo en development build'}
           </Text>
         </View>
-        <Switch value={avisar} onValueChange={(v) => void onChange(v)} />
+        <Switch value={avisar} onValueChange={(v) => void onChange(v)} disabled={!disponible} />
       </View>
     </ScrollView>
   );

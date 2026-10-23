@@ -1,8 +1,16 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import { useReportes } from '@/lib/reportes';
+
+const NOTIFICATIONS_MODULE = (() => {
+  try {
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+})();
 
 export default function DetalleReporte() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,18 +32,19 @@ export default function DetalleReporte() {
     actualizarEstado(reporte.id, 'resuelto');
     agregarAviso(`Se resolvió tu reporte: ${reporte.titulo}`);
     try {
-      const perm = await Notifications.getPermissionsAsync();
+      if (!NOTIFICATIONS_MODULE) return;
+      const perm = await NOTIFICATIONS_MODULE.getPermissionsAsync();
       if (perm.granted) {
         if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('reportes', {
+          await NOTIFICATIONS_MODULE.setNotificationChannelAsync('reportes', {
             name: 'Reportes',
-            importance: Notifications.AndroidImportance.HIGH,
+            importance: NOTIFICATIONS_MODULE.AndroidImportance.HIGH,
           });
         }
-        await Notifications.scheduleNotificationAsync({
+        await NOTIFICATIONS_MODULE.scheduleNotificationAsync({
           content: { title: 'Reporte resuelto', body: reporte.titulo },
           trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            type: NOTIFICATIONS_MODULE.SchedulableTriggerInputTypes.TIME_INTERVAL,
             seconds: 10,
             channelId: 'reportes',
           },

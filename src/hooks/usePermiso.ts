@@ -1,10 +1,18 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import * as Camera from 'expo-camera';
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 import { Recurso } from '@/lib/permisos';
 import { useRevisarAlVolver } from './useRevisarAlVolver';
+
+const NOTIFICATIONS_MODULE = (() => {
+  try {
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+})();
 
 export type EstadoPermiso = 'cargando' | 'concedido' | 'preguntable' | 'bloqueado';
 
@@ -17,10 +25,16 @@ export type Parcial =
 export function usePermiso(recurso: Recurso) {
   const [camPerm, requestCam, getCamPerm] = Camera.useCameraPermissions();
   const [locPerm, requestLoc, getLocPerm] = Location.useForegroundPermissions();
-  const [notifPerm, setNotifPerm] = useState<any>(null);
+  const [notifPerm, setNotifPerm] = useState<any>(
+    NOTIFICATIONS_MODULE ? null : { granted: false, canAskAgain: false, status: 'denied' },
+  );
 
   const cargarNotif = useCallback(async () => {
-    const p = await Notifications.getPermissionsAsync();
+    if (!NOTIFICATIONS_MODULE) {
+      setNotifPerm({ granted: false, canAskAgain: false, status: 'denied' });
+      return;
+    }
+    const p = await NOTIFICATIONS_MODULE.getPermissionsAsync();
     setNotifPerm(p);
   }, []);
 
@@ -28,7 +42,8 @@ export function usePermiso(recurso: Recurso) {
     if (recurso !== 'notificaciones') return;
     let cancelado = false;
     void (async () => {
-      const p = await Notifications.getPermissionsAsync();
+      if (!NOTIFICATIONS_MODULE) return;
+      const p = await NOTIFICATIONS_MODULE.getPermissionsAsync();
       if (!cancelado) setNotifPerm(p);
     })();
     return () => {
@@ -85,13 +100,16 @@ export function usePermiso(recurso: Recurso) {
       await getLocPerm();
       return r;
     }
+    if (!NOTIFICATIONS_MODULE) {
+      return { granted: false, canAskAgain: false, status: 'denied' } as any;
+    }
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('reportes', {
+      await NOTIFICATIONS_MODULE.setNotificationChannelAsync('reportes', {
         name: 'Reportes',
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: NOTIFICATIONS_MODULE.AndroidImportance.HIGH,
       });
     }
-    const r = await Notifications.requestPermissionsAsync();
+    const r = await NOTIFICATIONS_MODULE.requestPermissionsAsync();
     setNotifPerm(r);
     return r;
   }, [recurso, requestCam, getCamPerm, requestLoc, getLocPerm]);
@@ -100,5 +118,5 @@ export function usePermiso(recurso: Recurso) {
     void Linking.openSettings();
   }, []);
 
-  return { estado, parcial, pedir, abrirAjustes, refrescar };
+  return { estado, parcial, pedir, abrirAjustes, refrescar, disponible: !!NOTIFICATIONS_MODULE };
 }

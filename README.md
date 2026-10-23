@@ -80,7 +80,3 @@ pnpm exec tsc --noEmit
 pnpm exec expo prebuild --clean
 pnpm exec expo run:android
 ```
-
-## Capturas / video
-
-Completar con capturas o video corto de: escáner en sus cuatro estados, ubicación concedida y denegada, foto desde el selector, notificación recibida y panel de permisos antes y después de volver de Ajustes, más el diálogo del sistema con el texto de propósito en una development build.
