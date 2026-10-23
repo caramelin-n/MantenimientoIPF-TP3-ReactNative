@@ -1,56 +1,86 @@
-# Welcome to your Expo app 👋
+# MantenimientoIPF
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App Expo / React Native (SDK 57) para reportar desperfectos del Instituto Politécnico Formosa. Spec: `ACTIVIDADES.md` Parte G.
 
-## Get started
+## Árbol de `src/app`
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+src/app/
+  _layout.tsx
+  (tabs)/
+    _layout.tsx
+    index.tsx          # / Reportes
+    avisos.tsx         # /avisos
+    permisos.tsx       # /permisos
+  reporte/
+    nuevo.tsx          # /reporte/nuevo
+    escanear.tsx       # /reporte/escanear
+    foto.tsx           # /reporte/foto
+    ubicacion.tsx      # /reporte/ubicacion
+    [id].tsx           # /reporte/[id]
+  permisos/
+    [recurso].tsx      # /permisos/[recurso] (modal)
+  ajustes-app.tsx      # /ajustes-app
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## `plugins` de `app.json` (comentado)
 
-### Other setup steps
+```json
+"plugins": [
+  "expo-router",
+  ["expo-splash-screen", { "backgroundColor": "#208AEF", "image": "./assets/images/splash-icon.png", "imageWidth": 76 }],
+  ["expo-camera", {
+    "cameraPermission": "Usamos tu cámara para leer el QR del aula y fotografiar el desperfecto.",
+    "microphonePermission": false,   // sin micrófono: no se graba audio
+    "recordAudioAndroid": false      // sin RECORD_AUDIO en Android
+  }],
+  ["expo-location", {
+    "locationWhenInUsePermission": "Usamos tu ubicación para marcar dónde está el problema.",
+    "locationAlwaysAndWhenInUsePermission": false  // sin ubicación en segundo plano
+  }],
+  ["expo-image-picker", {
+    "photosPermission": false       // sin permiso de galería: se usa el selector del sistema
+  }],
+  "expo-notifications"
+]
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+`android.blockedPermissions`:
+`RECORD_AUDIO`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `ACCESS_BACKGROUND_LOCATION`, `SYSTEM_ALERT_WINDOW`.
+Justificación: esos permisos no corresponden a ninguna función de la app; se quitan del manifiesto generado para mínimo privilegio.
 
-## Learn more
+## Permisos
 
-To learn more about developing your project with Expo, look at the following resources:
+| Recurso | Módulo | Cuándo se pide | Alternativa si se deniega |
+|---|---|---|---|
+| Cámara | `expo-camera` | Al tocar escanear o sacar foto | Código de aula a mano / elegir foto de galería |
+| Ubicación | `expo-location` | Al marcar ubicación | Elegir sector a mano |
+| Notificaciones | `expo-notifications` | Al activar el interruptor en `/ajustes-app` | Bandeja `/avisos` dentro de la app |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+La selección de fotos no pide permiso de galería; usa `ImagePicker.launchImageLibraryAsync`.
 
-## Join the community
+## Auditoría del manifiesto (`npx expo prebuild --clean`)
 
-Join our community of developers creating universal apps.
+Permisos generados en `AndroidManifest.xml`:
+- `CAMERA` (expo-camera)
+- `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` (expo-location)
+- `POST_NOTIFICATIONS` (expo-notifications)
+- `INTERNET`, `VIBRATE` (base Expo)
+- Removidos con `tools:node="remove"`: `RECORD_AUDIO`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `ACCESS_BACKGROUND_LOCATION`, `SYSTEM_ALERT_WINDOW`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+En iOS no se agregan claves de micrófono ni galería gracias a `microphonePermission: false` y `photosPermission: false`; solo `NSCameraUsageDescription` y `NSLocationWhenInUseUsageDescription`.
+
+## Comandos
+
+```bash
+pnpm install
+pnpm exec expo install expo-camera expo-location expo-image-picker expo-notifications
+pnpm run lint
+pnpm exec tsc --noEmit
+pnpm exec expo prebuild --clean
+pnpm exec expo run:android
+```
+
+## Capturas / video
+
+Completar con capturas o video corto de: escáner en sus cuatro estados, ubicación concedida y denegada, foto desde el selector, notificación recibida y panel de permisos antes y después de volver de Ajustes, más el diálogo del sistema con el texto de propósito en una development build.

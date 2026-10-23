@@ -1,41 +1,33 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# MantenimientoIPF
 
-## Expo has changed — do not trust your training data
+Expo / React Native app for TP3 (“Mantenimiento IPF”). The authoritative spec is `ACTIVIDADES.md` (especially Parte G); `RESPUESTAS.md` is completed theory work and should not be regenerated.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+## Tooling
+- Package manager: pnpm (`pnpm-lock.yaml`). Install with `pnpm install`; run scripts with `pnpm run …`.
+- Expo tooling uses npx: `pnpm exec expo …`. Install dependencies only with `pnpm exec expo install <pkg>` (never `pnpm add`/`npm add`, so SDK versions resolve).
+- Scripts: `pnpm start`, `pnpm run android`, `pnpm run ios`, `pnpm run web`, `pnpm run lint` (`expo lint`).
+- Typecheck: `pnpm exec tsc --noEmit`. There is no test runner; do not add one.
+- Verification order: `pnpm run lint` → `pnpm exec tsc --noEmit`.
+- Expo SDK 57 (~57.0.31); use `https://docs.expo.dev/versions/v57.0.0/`, never API memory.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+## Structure
+- Expo Router: screens only in `src/app/` (`_layout.tsx` defines navigators); hooks/components/logic live in `src/hooks`, `src/components`, `src/lib`.
+- Aliases: `@/*` → `./src/*`, `@/assets/*` → `./assets/*`.
+- Strict TS; `typedRoutes` and `reactCompiler` are enabled in `app.json`.
+- Continuous Native Generation: `ios/`/`android/` do not exist; configure native behavior in `app.json`/plugins. Inspect generated files with `pnpm exec expo prebuild --clean`.
+- The starter template files were intentionally removed; do not restore them as “missing”.
 
-## Commands
+## TP3 / permission constraints
+- Required routes and fallbacks are in `ACTIVIDADES.md` Parte G1–G2.
+- `expo-permissions` is forbidden; use each module’s own hooks (`expo-camera`, `expo-location`, `expo-image-picker`, `expo-notifications`) — install with `pnpm exec expo install`.
+- Unified permission hook goes in `src/hooks/usePermiso.ts`; status states and AppState refresh are required.
+- Minimum privilege in `app.json`: `expo-camera` `microphonePermission: false` and `recordAudioAndroid: false`; no `READ_MEDIA_*`; gallery selection uses the system picker (no permission).
+- `blockedPermissions` only lists permissions the app does not use; justify each in `README.md`.
+- Purpose strings follow “Usamos tu [dato] para [beneficio concreto]”.
+- Notifications are requested only from the settings screen; create the Android channel `"reportes"` first; a denied permission must fall back to in-app `/avisos`.
+- No denied permission may block creating a report.
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+## Platform quirks
+- Permission dialogs/text purposes only appear in a development build (`pnpm exec expo run:android|ios` or an EAS development profile), not Expo Go.
+- Reset a permission state without reinstalling via platform tools (`adb` / `xcrun simctl`) rather than reinstalls.
 ```
-
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md

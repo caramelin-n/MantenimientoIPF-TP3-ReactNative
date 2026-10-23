@@ -1,18 +1,22 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
+import { ReportesProvider } from '@/lib/reportes';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <ReportesProvider>
+      <Stack screenOptions={{ headerTitleAlign: 'center' }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="reporte/nuevo" options={{ title: 'Nuevo reporte' }} />
+        <Stack.Screen name="reporte/escanear" options={{ title: 'Escanear QR' }} />
+        <Stack.Screen name="reporte/foto" options={{ title: 'Adjuntar foto' }} />
+        <Stack.Screen name="reporte/ubicacion" options={{ title: 'Ubicación' }} />
+        <Stack.Screen name="reporte/[id]" options={{ title: 'Detalle del reporte' }} />
+        <Stack.Screen
+          name="permisos/[recurso]"
+          options={{ presentation: 'modal', title: 'Permiso' }}
+        />
+        <Stack.Screen name="ajustes-app" options={{ title: 'Ajustes' }} />
+      </Stack>
+    </ReportesProvider>
   );
 }
